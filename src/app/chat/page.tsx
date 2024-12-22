@@ -5,7 +5,7 @@
 // Dynamic Scrolling: Automatically scrolls to the latest message using a ref (messagesEndRef) and useEffect.
 
 "use client";
-
+import { useState, useCallback } from "react";
 import { Message } from "@/components/Message";
 import { PiCaretLeftLight, PiArrowFatLinesRightFill, PiChatDots } from "react-icons/pi";
 import { Button, Heading, IconButton, TextField } from "@radix-ui/themes";
@@ -15,9 +15,55 @@ import { useLoading } from '@/app/providers/LoadingProvider';
 import ModelSelector from "@/components/ModelSelector";
 import TempSlider from "@/components/TempSlider";
 
+const useCustomChat = (options) => {
+  const [contextData, setContextData] = useState(null);
+  
+  const handleContextFetch = async (message) => {
+    try {
+      const response = await fetch('/api/context', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+      const data = await response.json();
+      setContextData(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching context:', error);
+      return null;
+    }
+  };
+
+  const chat = useChat({
+    ...options,
+    body: {
+      ...options.body,
+      contextData,
+    },
+  });
+
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    
+    if (chat.input.trim()) {
+      await handleContextFetch(chat.input);
+    }
+    
+    return chat.handleSubmit(e);
+  }, [chat.input, chat.handleSubmit]);
+
+  return {
+    ...chat,
+    handleSubmit,
+  };
+};
+
+
 export default function ChatPage() {
     const { selectedModel, temperatureValue } = useLoading();
-    const { messages, input, handleInputChange, handleSubmit } = useChat({
+    const { messages, input, handleInputChange, handleSubmit } = useCustomChat({
         api: "/api/chat",
         initialMessages: [
           {

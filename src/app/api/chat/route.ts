@@ -6,32 +6,16 @@
 
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { createOrReadVectorStoreIndex } from "@/app/lib/vector-store";
+
+export const runtime = 'edge'; // Use edge runtime for smaller bundle
 
 export async function POST(req: Request) {
     try {
-        const { messages, selectedModel, temperatureValue } = await req.json();
+        const { messages, selectedModel, temperatureValue, contextData } = await req.json();
 
-        const latestMessage = messages[messages.length - 1];
-
-        const { MetadataMode } = await import('llamaindex');
-
-        const index = await createOrReadVectorStoreIndex();
-
-        let systemPrompt = 'You are a helpful AI Assistant';
-
-        if (index) {
-          const retriever = index.asRetriever({
-              similarityTopK: 1
-          });
-
-          const matchingNodes = await retriever.retrieve(latestMessage.content);
-
-          if (matchingNodes.length > 0 && matchingNodes[0].score > 0.7) {
-              const knowledge = matchingNodes[0].node.getContent(MetadataMode.NONE);
-              systemPrompt = `You are a helpful AI Assistant. Your knowledge is enriched by this document ${knowledge}. When possible explain the reasoning for your response based on this knowledge`;
-          }
-      }
+        const systemPrompt = contextData?.knowledge 
+            ? `You are a helpful AI Assistant. Your knowledge is enriched by this document ${contextData.knowledge}. When possible explain the reasoning for your response based on this knowledge`
+            : 'You are a helpful AI Assistant';
 
         const result = streamText({
             model: openai(selectedModel),
