@@ -1,3 +1,6 @@
+// Loader UI component designed with SVG and animated using Tailwind CSS.
+// `cn` utility function helped to conditional apply, merge multiple classes, clean code and handle combinations
+
 import { useLoading } from "@/app/providers/LoadingProvider";
 import cn from "classnames";
 
@@ -7,13 +10,14 @@ export const Loader = () => {
   return (
     <div
       className={cn(
-        "absolute bg-stone-900 z-10 h-full w-full items-center justify-center",
+        "absolute bg-white opacity-70 z-10 h-full w-full items-center justify-center",
         isLoading ? "flex" : "hidden",
       )}
+      role="status"
     >
       <div className={cn("flex items-center", isLoading && "animate-spin")}>
         <svg
-          className="h-20 w-20 text-emerald-700"
+          className="h-20 w-20 text-blue-600"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"

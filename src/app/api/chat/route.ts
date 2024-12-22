@@ -1,45 +1,49 @@
-import { createOrReadVectorStoreIndex } from '@/lib/vector-store';
-// import { MAX_RESPONSE_TOKENS, trimMessages } from '@/lib/tokens'
-import { OpenAIStream, StreamingTextResponse } from 'ai';
-import { MetadataMode } from 'llamaindex';
-import OpenAI from 'openai';
+// Validates incoming request parameters
+// Configures OpenAI model with specified parameters
+// Streams response text using AI SDK
+// Uses system prompt "You are a helpful assistant"
+// Set Model and Temprature based on the global context
 
-const openAI = new OpenAI();
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createOrReadVectorStoreIndex } from "@/app/lib/vector-store";
 
-export async function POST(req:Request) {
-    const { messages } = await req.json();
-    console.log("messsgas", messages)
-    const latestMessage = messages[messages.length - 1];
+export async function POST(req: Request) {
+    try {
+        const { messages, selectedModel, temperatureValue } = await req.json();
 
-    const index = await createOrReadVectorStoreIndex();
+        const latestMessage = messages[messages.length - 1];
 
-    const systemMessage =  {
-        role: 'system',
-        content: 'You are a helpful AI Assistant'
-    };
+        const { MetadataMode } = await import('llamaindex');
 
+        const index = await createOrReadVectorStoreIndex();
 
-    const retriever = index.asRetriever();
-    retriever.similarityTopK = 1;
+        let systemPrompt = 'You are a helpful AI Assistant';
 
-    const [matchingNodes] = await retriever.retrieve(latestMessage.content);
+        if (index) {
+          const retriever = index.asRetriever({
+              similarityTopK: 1
+          });
 
-    console.log('matchingNodes', matchingNodes);
+          const matchingNodes = await retriever.retrieve(latestMessage.content);
 
-    if(matchingNodes.score > 0.8) {
-        const knowledge = matchingNodes.node.getContent(MetadataMode.NONE)
-        systemMessage.content =`You are a helpful AI Assistant. Your knowledge is enriched by this document ${knowledge}. When possible explain the reasoning for your respnse based on for this knowledge`
+          if (matchingNodes.length > 0 && matchingNodes[0].score > 0.7) {
+              const knowledge = matchingNodes[0].node.getContent(MetadataMode.NONE);
+              systemPrompt = `You are a helpful AI Assistant. Your knowledge is enriched by this document ${knowledge}. When possible explain the reasoning for your response based on this knowledge`;
+          }
+      }
+
+        const result = streamText({
+            model: openai(selectedModel),
+            temperature: temperatureValue,
+            system: systemPrompt,
+            messages,
+        });
+
+        return result.toDataStreamResponse();
+
+    } catch (error) {
+        console.error('Error in chat route:', error);
+        return new Response('Error processing your request', { status: 500 });
     }
-
-    const response = await openAI.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        temperature: 0,
-        messages: [systemMessage, ...messages],
-        stream: true
-    })
-
-    const stream = OpenAIStream(response);
-
-    return new StreamingTextResponse(stream)
-
 }
