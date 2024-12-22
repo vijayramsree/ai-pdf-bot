@@ -52,7 +52,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 #### Login with this credetials
 _username_: `admin`\
-_password_: `nmtest`
+_password_: `admin`
 
 ### Unit Testing
 Unit testing is implemented using the Jest testing library. The testing effort achieved over 75% code coverage across the entire application, ensuring the reliability of core functionality. Additionally, 100% test coverage was achieved for all UI components, thoroughly verifying their behavior and interactions.
