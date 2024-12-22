@@ -26,7 +26,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat', '/upload', '/login'],
-  runtime: 'edge',
-    regions: ['iad1'],
+  matcher: ['/chat', '/upload', '/login']
 };
